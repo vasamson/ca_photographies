@@ -1,0 +1,48 @@
+# ─── CA Photographies — réécriture vers le front controller ──────────────
+Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Force HTTPS en production (décommenter une fois le certificat actif sur EX2)
+  # RewriteCond %{HTTPS} !=on
+  # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Fichiers réels (photos, assets, wp-content/uploads conservé) : servis directement, jamais par PHP
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  RewriteRule ^ index.php [L]
+</IfModule>
+
+# Jamais de listing ni d'accès aux fichiers sensibles
+<FilesMatch "^(\.env|\.git|composer\.(json|lock)|.*\.(sql|log|md|sqlite))$">
+  Require all denied
+</FilesMatch>
+
+# Cache long pour les médias et assets versionnés
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType image/png  "access plus 1 year"
+  ExpiresByType text/css   "access plus 1 week"
+  ExpiresByType application/javascript "access plus 1 week"
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Uploads par chunks de 4 Mo : ces limites suffisent (ajustables dans cPanel > MultiPHP INI Editor)
+<IfModule mod_php.c>
+  php_value upload_max_filesize 16M
+  php_value post_max_size 16M
+  php_value memory_limit 512M
+  php_value max_execution_time 300
+</IfModule>

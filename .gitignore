@@ -1,0 +1,19 @@
+# Secrets — ne JAMAIS commiter
+.env
+.env.*
+!.env.example
+
+# Données locales (base SQLite, chunks d'upload, photos de dev, sauvegardes, logs)
+storage/*
+!storage/.gitkeep
+
+# Ancien prototype statique (conservé localement pour référence)
+archive/
+
+# Système / éditeurs
+.DS_Store
+._*
+Thumbs.db
+.idea/
+.vscode/
+*.log
