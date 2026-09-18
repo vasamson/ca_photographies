@@ -20,7 +20,7 @@ final class PublicController
             'page' => 'home', 'title' => null,
             'albums' => $albums, 'total' => $res['total'],
             'initial' => ['albums' => $albums, 'total' => $res['total']],
-        ]), 200, ['Cache-Control: public, max-age=120']);
+        ]), 200, ['Cache-Control: no-cache, must-revalidate']);
     }
 
     public static function albums(Request $req): void
@@ -32,7 +32,7 @@ final class PublicController
             'albums' => $albums, 'total' => $res['total'], 'pages' => $res['pages'],
             'facets' => Albums::facets(),
             'initial' => ['albums' => $albums, 'total' => $res['total'], 'pages' => $res['pages'], 'page' => 1],
-        ]), 200, ['Cache-Control: public, max-age=120']);
+        ]), 200, ['Cache-Control: no-cache, must-revalidate']);
     }
 
     public static function album(Request $req, string $slug): void
@@ -49,7 +49,7 @@ final class PublicController
             'ogImage' => $album['cover'] ? ($album['cover']['sizes'] ? end($album['cover']['sizes'])['url'] : $album['cover']['thumb']) : null,
             'album' => $album, 'photos' => $photos, 'next' => $next ? Albums::toPublic($next) : null,
             'initial' => ['album' => $album, 'photos' => $photos, 'per' => $per, 'pages' => max(1, (int) ceil($a['photo_count'] / $per)), 'next' => $next ? Albums::toPublic($next) : null],
-        ]), 200, ['Cache-Control: public, max-age=120']);
+        ]), 200, ['Cache-Control: no-cache, must-revalidate']);
     }
 
     public static function about(Request $req): void
@@ -59,7 +59,7 @@ final class PublicController
             'page' => 'about', 'title' => Settings::get('about_title'),
             'aboutCover' => $latest && $latest['cover'] ? Photos::toPublic($latest['cover']) : null,
             'aboutCaption' => $latest ? $latest['title'] . ' · ' . Util::dateFr($latest['event_date']) : '',
-        ]), 200, ['Cache-Control: public, max-age=600']);
+        ]), 200, ['Cache-Control: no-cache, must-revalidate']);
     }
 
     // ─── API publique ────────────────────────────────────────────────────
