@@ -61,14 +61,36 @@ final class WpDb
         $rows = $this->pdo->query($sql)->fetchAll();
         if (!$rows) return [];
         $ids = array_column($rows, 'ID'); $in = implode(',', array_map('intval', $ids));
-        $thumbs = []; foreach ($this->pdo->query("SELECT post_id, meta_value FROM {$this->p}postmeta WHERE meta_key = '_thumbnail_id' AND post_id IN ($in)") as $r) $thumbs[$r['post_id']] = (int) $r['meta_value'];
+        $thumbs = []; $elementor = [];
+        foreach ($this->pdo->query("SELECT post_id, meta_key, meta_value FROM {$this->p}postmeta WHERE meta_key IN ('_thumbnail_id', '_elementor_data') AND post_id IN ($in)") as $r) {
+            if ($r['meta_key'] === '_thumbnail_id') $thumbs[$r['post_id']] = (int) $r['meta_value'];
+            else $elementor[$r['post_id']] = self::elementorGalleryIds($r['meta_value']);
+        }
         $cats = []; foreach ($this->pdo->query("SELECT tr.object_id, tt.term_id FROM {$this->p}term_relationships tr JOIN {$this->p}term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id WHERE tt.taxonomy = 'category' AND tr.object_id IN ($in)") as $r) $cats[$r['object_id']][] = (int) $r['term_id'];
         return array_map(fn($r) => [
             'id' => (int) $r['ID'], 'slug' => $r['post_name'], 'link' => $this->home . '/' . $r['post_name'] . '/',
             'date' => str_replace(' ', 'T', $r['post_date']), 'modified' => str_replace(' ', 'T', $r['post_modified']),
-            'title' => ['rendered' => $r['post_title']], 'excerpt' => ['rendered' => $r['post_excerpt']], 'content' => ['rendered' => $r['post_content']],
+            'title' => ['rendered' => $r['post_title']], 'excerpt' => ['rendered' => $r['post_excerpt']],
+            // Galeries Elementor (JSON en métadonnée) converties en code court pour le parseur commun
+            'content' => ['rendered' => $r['post_content'] . (!empty($elementor[$r['ID']]) ? ' [gallery ids="' . implode(',', $elementor[$r['ID']]) . '"]' : '')],
             'featured_media' => $thumbs[$r['ID']] ?? 0, 'categories' => $cats[$r['ID']] ?? [],
         ], $rows);
+    }
+
+    /** Ids des images des widgets galerie Elementor (image-gallery → wp_gallery, gallery Pro → gallery), dans l'ordre. */
+    public static function elementorGalleryIds(string $json): array
+    {
+        $data = json_decode($json, true); $ids = [];
+        if (!is_array($data)) return [];
+        $walk = function ($node) use (&$walk, &$ids) {
+            if (!is_array($node)) return;
+            foreach (['wp_gallery', 'gallery'] as $k) {
+                if (isset($node['settings'][$k]) && is_array($node['settings'][$k])) foreach ($node['settings'][$k] as $img) if (!empty($img['id'])) $ids[] = (int) $img['id'];
+            }
+            foreach ($node['elements'] ?? [] as $child) $walk($child);
+        };
+        foreach ($data as $top) $walk($top);
+        return array_values(array_unique($ids));
     }
 
     public function categories(): array

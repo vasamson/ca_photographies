@@ -174,9 +174,11 @@ final class WpImport
         foreach ($headers as $h) if (stripos($h, "$name:") === 0) return trim(substr($h, strlen($name) + 1));
         return null;
     }
+    /** Chemin relatif à LEGACY_URL, sans tenir compte de http/https. */
     private static function relPath(string $url, string $legacyUrl): ?string
     {
-        return str_starts_with($url, $legacyUrl . '/') ? rawurldecode(substr($url, strlen($legacyUrl) + 1)) : null;
+        $u = preg_replace('#^https?://#i', '', $url); $base = preg_replace('#^https?://#i', '', $legacyUrl) . '/';
+        return str_starts_with($u, $base) ? rawurldecode(substr($u, strlen($base))) : null;
     }
     private static function text(string $s): string { return html_entity_decode(strip_tags($s), ENT_QUOTES | ENT_HTML5, 'UTF-8'); }
 
@@ -184,7 +186,13 @@ final class WpImport
     public static function parseGallery(string $html): array
     {
         $items = []; $seen = [];
-        if (!preg_match_all('#<a\b[^>]*>#i', $html, $anchors)) return [];
+        // Code court WordPress brut (contenu lu directement en base) : [gallery ids="12,34,56" …]
+        if (preg_match_all('#\[gallery\b[^\]]*\bids=["\']([\d,\s]+)["\']#i', $html, $g)) {
+            foreach ($g[1] as $list) foreach (preg_split('/\s*,\s*/', trim($list)) as $id) {
+                $id = (int) $id; if ($id && !isset($seen["id:$id"])) { $seen["id:$id"] = true; $items[] = ['id' => $id, 'url' => '']; }
+            }
+        }
+        if (!preg_match_all('#<a\b[^>]*>#i', $html, $anchors)) return $items;
         foreach ($anchors[0] as $a) {
             if (!preg_match('#href=["\']([^"\']+\.(?:jpe?g|png|webp))["\']#i', $a, $h)) continue;
             $url = html_entity_decode($h[1]);
@@ -193,7 +201,8 @@ final class WpImport
             if (preg_match('#data-e-action-hash=["\']([^"\']+)["\']#', $a, $m) && preg_match('#settings=([A-Za-z0-9+/=]+)#', rawurldecode($m[1]), $s)) {
                 $j = json_decode(base64_decode($s[1]), true); $id = (int) ($j['id'] ?? 0) ?: null;
             }
-            $seen[$url] = true;
+            if ($id && isset($seen["id:$id"])) continue;
+            $seen[$url] = true; if ($id) $seen["id:$id"] = true;
             $items[] = ['id' => $id, 'url' => $url];
         }
         return $items;
