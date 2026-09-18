@@ -7,8 +7,8 @@ DirectoryIndex index.php
   RewriteBase /
 
   # Force HTTPS en production (décommenter une fois le certificat actif sur EX2)
-  # RewriteCond %{HTTPS} !=on
-  # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+  RewriteCond %{HTTPS} !=on
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
   # Fichiers réels (photos, assets, wp-content/uploads conservé) : servis directement, jamais par PHP
   RewriteCond %{REQUEST_FILENAME} -f [OR]
