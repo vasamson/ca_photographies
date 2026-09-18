@@ -32,11 +32,11 @@ $hero = $album['cover'] ? ($album['cover']['sizes'] ? end($album['cover']['sizes
     </section>
 
     <section class="gallery">
-      <div class="g-head"><h2>La <em style="font-style:italic;color:var(--red)">série</em></h2><span class="wide"><?= $album['count'] ?> photos · cliquer pour agrandir</span></div>
+      <div class="g-head"><h2>La <em style="font-style:italic;color:var(--red)">série</em></h2><span class="wide"><?= $album['count'] ?> photos · cliquer pour agrandir · ⤓ pour télécharger</span></div>
       <?php if ($photos): ?>
       <div class="g-cols" id="g-cols">
         <?php foreach ($cols as $col): ?><div class="g-col"><?php foreach ($col as [$p, $i]): ?>
-          <figure class="g-item" data-i="<?= $i ?>" style="aspect-ratio:<?= $p['w'] ?>/<?= $p['h'] ?>"><img src="<?= $e($p['thumb']) ?>" alt="<?= $e($p['name']) ?>" loading="lazy" decoding="async" width="<?= $p['w'] ?>" height="<?= $p['h'] ?>"><span class="num"><?= $pad($i + 1) ?></span><span class="cap"><?= $e($p['name']) ?></span></figure>
+          <figure class="g-item" data-i="<?= $i ?>" style="aspect-ratio:<?= $p['w'] ?>/<?= $p['h'] ?>"><img src="<?= $e($p['thumb']) ?>" alt="<?= $e($p['name']) ?>" loading="lazy" decoding="async" width="<?= $p['w'] ?>" height="<?= $p['h'] ?>"><span class="num"><?= $pad($i + 1) ?></span><span class="cap"><?= $e($p['name']) ?></span><a class="dl" href="<?= $e($p['original']) ?>" download title="Télécharger la photo en haute définition" aria-label="Télécharger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v3h16v-3"/></svg></a></figure>
         <?php endforeach; ?></div><?php endforeach; ?>
       </div>
       <div class="more-wrap" id="g-more-wrap"><button class="btn <?= $initial['pages'] > 1 ? '' : 'hidden' ?>" id="g-more">Charger la suite <span class="wide" id="g-status"><?= count($photos) ?> / <?= $album['count'] ?></span></button></div>
@@ -54,9 +54,16 @@ $hero = $album['cover'] ? ($album['cover']['sizes'] ? end($album['cover']['sizes
 
     <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo en plein écran">
       <div class="blur"></div>
-      <div class="ui"><span class="count"></span><div><a class="lb-dl" target="_blank" rel="noopener" download>Original ↗</a> &nbsp;&nbsp; <button class="lb-close">Fermer ✕</button></div></div>
+      <div class="ui">
+        <div class="lb-info"><span class="count"></span><span class="lb-name wide"></span></div>
+        <div class="lb-actions">
+          <a class="btn solid red small lb-dl" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v3h16v-3"/></svg><span>Télécharger la photo</span></a>
+          <button class="lb-close" aria-label="Fermer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+      </div>
       <div class="stage"><img alt=""></div>
-      <button class="nav prev" aria-label="Photo précédente">← préc.</button><button class="nav next" aria-label="Photo suivante">suiv. →</button>
+      <button class="nav prev" aria-label="Photo précédente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <button class="nav next" aria-label="Photo suivante"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
       <div class="strip"></div>
     </div>
   </main>

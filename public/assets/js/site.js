@@ -233,7 +233,7 @@
         heights[c] += p.h / (p.w || 3);
         const f = document.createElement("figure");
         f.className = "g-item"; f.dataset.i = i; f.style.aspectRatio = `${p.w}/${p.h}`;
-        f.innerHTML = `<img src="${esc(p.thumb)}" alt="${esc(p.name)}" loading="lazy" decoding="async" width="${p.w}" height="${p.h}"><span class="num">${pad(i + 1)}</span><span class="cap">${esc(p.name)}</span>`;
+        f.innerHTML = `<img src="${esc(p.thumb)}" alt="${esc(p.name)}" loading="lazy" decoding="async" width="${p.w}" height="${p.h}"><span class="num">${pad(i + 1)}</span><span class="cap">${esc(p.name)}</span><a class="dl" href="${esc(p.original)}" download title="Télécharger la photo en haute définition" aria-label="Télécharger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v3h16v-3"/></svg></a>`;
         cols[c].appendChild(f); added.push(f);
       });
       if (animate) ScrollTrigger.batch(added, { start: "top 95%", once: true, batchMax: 12, onEnter: (b) => gsap.to(b, { clipPath: "inset(0% 0 0 0)", duration: 1.2, ease: "expo.out", stagger: .06 }) });
@@ -268,7 +268,7 @@
 
     // ─── Lightbox ─────────────────────────────────────────────────────
     const lb = document.getElementById("lightbox");
-    const lbImg = lb.querySelector(".stage img"), lbBlur = lb.querySelector(".blur"), lbCount = lb.querySelector(".count"), lbDl = lb.querySelector(".lb-dl"), lbStrip = lb.querySelector(".strip");
+    const lbImg = lb.querySelector(".stage img"), lbBlur = lb.querySelector(".blur"), lbCount = lb.querySelector(".count"), lbDl = lb.querySelector(".lb-dl"), lbStrip = lb.querySelector(".strip"), lbName = lb.querySelector(".lb-name");
     let cur = 0;
     const stageWidth = () => Math.max(innerWidth, innerHeight); // couvre le mode paysage/portrait
     const renderStrip = () => {
@@ -282,7 +282,8 @@
       cur = (i + photos.length) % photos.length;
       const p = photos[cur];
       lbImg.src = pickSize(p, stageWidth()); lbBlur.style.backgroundImage = `url("${p.thumb}")`;
-      lbDl.href = p.original;
+      lbDl.href = p.original; lbDl.download = p.name || "";
+      lbName.textContent = p.name || "";
       lbCount.innerHTML = `${pad(cur + 1)} <span style="color:var(--red)">/</span> ${pad(total)}`;
       renderStrip();
       lb.classList.add("open"); document.body.style.overflow = "hidden";
@@ -290,7 +291,10 @@
       [1, -1].forEach((d) => { const n = photos[(cur + d + photos.length) % photos.length]; if (n) { const pre = new Image(); pre.src = pickSize(n, stageWidth()); } });
     };
     const close = () => { lb.classList.remove("open"); document.body.style.overflow = ""; history.replaceState(null, "", location.pathname); };
-    document.querySelector(".gallery")?.addEventListener("click", (e) => { const f = e.target.closest(".g-item"); if (f) show(+f.dataset.i); });
+    document.querySelector(".gallery")?.addEventListener("click", (e) => {
+      if (e.target.closest(".dl")) { toast("Téléchargement de la photo…"); return; } // lien de téléchargement : ne pas ouvrir la lightbox
+      const f = e.target.closest(".g-item"); if (f) show(+f.dataset.i);
+    });
     lbStrip.addEventListener("click", (e) => e.target.dataset.i && show(+e.target.dataset.i));
     lb.querySelector(".lb-close").onclick = close;
     lb.querySelector(".prev").onclick = () => show(cur - 1);
@@ -299,6 +303,7 @@
     document.addEventListener("keydown", (e) => {
       if (!lb.classList.contains("open")) return;
       if (e.key === "Escape") close(); if (e.key === "ArrowLeft") show(cur - 1); if (e.key === "ArrowRight") show(cur + 1);
+      if ((e.key === "d" || e.key === "D") && !e.metaKey && !e.ctrlKey) lbDl.click();
     });
     let sx = 0;
     lb.addEventListener("touchstart", (e) => (sx = e.touches[0].clientX), { passive: true });
