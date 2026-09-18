@@ -7,7 +7,7 @@ $cols = [[], [], []]; $heights = [0, 0, 0];
 foreach ($photos as $i => $p) { $k = array_search(min($heights), $heights, true); $cols[$k][] = [$p, $i]; $heights[$k] += $p['h'] / max(1, $p['w']); }
 $hero = $album['cover'] ? ($album['cover']['sizes'] ? end($album['cover']['sizes'])['url'] : $album['cover']['thumb']) : null;
 ?>
-  <main>
+  <main id="main">
     <section class="a-hero">
       <div class="bg"><?php if ($hero): ?><img src="<?= $e($hero) ?>" alt="" fetchpriority="high"><?php endif; ?></div>
       <div class="in">
@@ -23,6 +23,10 @@ $hero = $album['cover'] ? ($album['cover']['sizes'] ? end($album['cover']['sizes
             <?php if ($album['category']): ?><dt class="wide">Catégorie</dt><dd><?= $e($album['category']) ?></dd><?php endif; ?>
             <dt class="wide">Photos</dt><dd><?= $album['count'] ?></dd>
           </dl>
+          <div class="a-actions">
+            <button class="btn small" id="share" type="button">Partager l'album</button>
+            <?php if ($photos): ?><a class="btn small" href="#g-cols">Voir la série ↓</a><?php endif; ?>
+          </div>
         </aside>
       </div>
     </section>

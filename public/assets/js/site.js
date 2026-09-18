@@ -40,6 +40,13 @@
     setTimeout(() => (location.href = url.href), 650);
   });
 
+  // ─── Retour en haut ─────────────────────────────────────────────────
+  const totop = document.getElementById("totop");
+  if (totop) {
+    addEventListener("scroll", () => { totop.hidden = scrollY < innerHeight * 1.5; }, { passive: true });
+    totop.addEventListener("click", () => scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" }));
+  }
+
   const splitWords = (title) => (title || "Sans titre").split(" ").map((w, i) => `<span class="w"><span>${i ? `<em>${esc(w)}</em>` : esc(w)}</span></span>`).join(" ");
 
   try {
@@ -90,12 +97,16 @@
     const params = () => `?page=${state.page}&q=${encodeURIComponent(state.q)}&year=${encodeURIComponent(state.year)}&category=${encodeURIComponent(state.category)}`;
 
     registerFloat(data.albums);
-    more.addEventListener("click", async () => {
-      more.disabled = true;
+    let loadingMore = false;
+    const loadMoreAlbums = async () => {
+      if (loadingMore || state.page >= state.pages) return;
+      loadingMore = true; more.disabled = true;
       try { state.page++; const res = await api("/api/albums" + params()); state.pages = res.pages; appendRows(res.albums); updateStatus(res); }
       catch (e) { state.page--; toast(e.message, true); }
-      finally { more.disabled = false; }
-    });
+      finally { loadingMore = false; more.disabled = false; }
+    };
+    more.addEventListener("click", loadMoreAlbums);
+    if ("IntersectionObserver" in window) new IntersectionObserver((en) => en.some((x) => x.isIntersecting) && loadMoreAlbums(), { rootMargin: "600px 0px" }).observe(more);
     let t;
     const refilter = () => {
       clearTimeout(t);
@@ -242,6 +253,15 @@
     // Charge automatiquement la page suivante quand on approche du bas
     const io = more && "IntersectionObserver" in window ? new IntersectionObserver((en) => en.some((x) => x.isIntersecting) && loadMore(), { rootMargin: "1200px 0px" }) : null;
     if (io && pageN < data.pages) io.observe(document.getElementById("g-more-wrap"));
+
+    // ─── Partager ─────────────────────────────────────────────────────
+    document.getElementById("share")?.addEventListener("click", async () => {
+      const data = { title: `${album.title} — ${document.title.split(" — ").pop()}`, url: location.origin + album.url };
+      try {
+        if (navigator.share) await navigator.share(data);
+        else { await navigator.clipboard.writeText(data.url); toast("Lien copié"); }
+      } catch {}
+    });
 
     // ─── Lightbox ─────────────────────────────────────────────────────
     const lb = document.getElementById("lightbox");

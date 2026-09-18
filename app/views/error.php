@@ -1,5 +1,5 @@
 <?php /** @var int $status @var string $message */ ?>
-  <main>
+  <main id="main">
     <section class="about wrap">
       <div class="section-head"><h2>Erreur <em style="font-style:italic;color:var(--red)"><?= (int) $status ?></em></h2></div>
       <div class="about-body">

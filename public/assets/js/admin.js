@@ -174,6 +174,7 @@
         <h2>${esc(album.title)}${album.published ? "" : ' <i class="badge">brouillon</i>'}</h2>
         <div class="actions">
           <a class="btn small" href="/albums/${esc(album.slug)}" target="_blank" rel="noopener">Voir sur le site ↗</a>
+          <button class="btn small" id="btn-copy" type="button" title="Copier le lien public">Copier le lien</button>
           <button class="btn red small" id="btn-delete">Supprimer l'album</button>
           <button class="btn solid red" id="btn-save">Enregistrer</button>
         </div>
@@ -215,6 +216,7 @@
       try { await api(`/api/admin/albums/${id}`, { method: "DELETE", body: { confirm: typed } }); toast("Album mis à la corbeille"); loadSide(true); go("albums"); }
       catch (e) { handle(e); }
     };
+    $("#btn-copy").onclick = async () => { try { await navigator.clipboard.writeText(location.origin + "/albums/" + album.slug); toast("Lien copié : /albums/" + album.slug); } catch { toast("Copie impossible", true); } };
     $("#btn-restore-album")?.addEventListener("click", async () => { try { await api(`/api/admin/albums/${id}/restore`, { method: "POST" }); toast("Album restauré"); loadSide(true); viewAlbum(id); } catch (e) { handle(e); } });
 
     // ── Grille de photos ──

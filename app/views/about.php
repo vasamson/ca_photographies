@@ -1,7 +1,8 @@
 <?php /** @var array $settings */ ?>
-  <main>
+  <main id="main">
     <section class="about wrap">
       <div class="section-head"><h2><?= $e($settings['about_title']) ?></h2><span class="wide"><?= $e($settings['tagline']) ?></span></div>
+      <div class="about-grid">
       <div class="about-body">
         <?php foreach (preg_split('/\n{2,}/', trim($settings['about_text'])) as $para): ?><p><?= nl2br($e($para)) ?></p><?php endforeach; ?>
         <dl class="facts">
@@ -10,6 +11,8 @@
           <?php if ($settings['facebook']): ?><dt class="wide">Facebook</dt><dd><a href="<?= $e($settings['facebook']) ?>" target="_blank" rel="noopener">Voir la page ↗</a></dd><?php endif; ?>
         </dl>
         <a class="btn red" href="/">Voir les albums</a>
+      </div>
+      <?php if ($aboutCover): ?><figure class="about-figure"><img src="<?= $e($aboutCover['sizes'][0]['url'] ?? $aboutCover['thumb']) ?>" alt="" loading="lazy"><figcaption class="wide"><?= $e($aboutCaption) ?></figcaption></figure><?php endif; ?>
       </div>
     </section>
   </main>

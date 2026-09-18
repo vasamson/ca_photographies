@@ -10,7 +10,7 @@ $covers = array_values(array_filter(array_map(fn($a) => $a['cover'] ? ($a['cover
     <div class="bar" id="loader-bar"></div>
   </div>
 
-  <main>
+  <main id="main">
     <section class="hero">
       <div class="hero-bg" id="hero-bg"><?php foreach ($covers as $i => $c): ?><img src="<?= $e($c) ?>" alt="" <?= $i ? 'loading="lazy"' : 'fetchpriority="high"' ?>><?php endforeach; ?></div>
       <div class="hero-content">

@@ -30,6 +30,7 @@ $brandHtml = $e(implode(' ', $parts)) . ' <em>' . $e($last) . '</em>';
 </head>
 <body data-page="<?= $e($page) ?>">
 <?php if ($page !== 'admin'): ?>
+  <a class="skip" href="#main">Aller au contenu</a>
   <div class="cursor" aria-hidden="true"><div class="ring"></div><div class="dot"></div></div>
   <div class="grain" aria-hidden="true"></div>
   <div class="vignette" aria-hidden="true"></div>
@@ -51,11 +52,31 @@ $brandHtml = $e(implode(' ', $parts)) . ' <em>' . $e($last) . '</em>';
 <?php if ($page !== 'admin'): ?>
   <footer class="foot">
     <a class="big" href="/"><?= $e($siteName) ?></a>
+    <div class="foot-grid">
+      <div class="foot-col">
+        <span class="wide">Navigation</span>
+        <a href="/">Albums</a>
+        <a href="/a-propos"><?= $e($settings['about_title']) ?></a>
+        <a href="/admin" rel="nofollow">Espace photographes</a>
+      </div>
+      <div class="foot-col">
+        <span class="wide">Contact</span>
+        <?php if ($settings['contact_email']): ?><a href="mailto:<?= $e($settings['contact_email']) ?>"><?= $e($settings['contact_email']) ?></a><?php endif; ?>
+        <?php if ($settings['instagram']): ?><a href="<?= $e($settings['instagram']) ?>" target="_blank" rel="noopener">Instagram ↗</a><?php endif; ?>
+        <?php if ($settings['facebook']): ?><a href="<?= $e($settings['facebook']) ?>" target="_blank" rel="noopener">Facebook ↗</a><?php endif; ?>
+        <?php if (!$settings['contact_email'] && !$settings['instagram'] && !$settings['facebook']): ?><span class="muted">Via la page <?= $e($settings['about_title']) ?></span><?php endif; ?>
+      </div>
+      <div class="foot-col">
+        <span class="wide">À propos</span>
+        <p class="muted"><?= $e($settings['tagline']) ?></p>
+      </div>
+    </div>
     <div class="meta wide">
-      <span><?= $e($settings['tagline']) ?></span>
-      <span><?php if ($settings['contact_email']): ?><a href="mailto:<?= $e($settings['contact_email']) ?>"><?= $e($settings['contact_email']) ?></a> · <?php endif; ?><a href="/admin" rel="nofollow">Administration</a></span>
+      <span>© <?= date('Y') ?> <?= $e($siteName) ?> · Toutes les photos sont protégées</span>
+      <span>Site créé par <a class="credit" href="mailto:samson.valentin2005@gmail.com">Valentin Samson</a></span>
     </div>
   </footer>
+  <button class="totop" id="totop" aria-label="Retour en haut" hidden>↑</button>
   <div class="float-img" id="float-img" aria-hidden="true"></div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>

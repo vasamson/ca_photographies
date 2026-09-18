@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\{Albums, Config, HttpException, Photos, Request, Response, Settings, View};
+use App\{Albums, Config, HttpException, Photos, Request, Response, Settings, Util, View};
 
 /** Pages publiques (rendu serveur) + API publique en lecture. */
 final class PublicController
@@ -43,7 +43,12 @@ final class PublicController
 
     public static function about(Request $req): void
     {
-        Response::html(View::page('about', ['page' => 'about', 'title' => Settings::get('about_title')]), 200, ['Cache-Control: public, max-age=600']);
+        $latest = Albums::listPublic(1, 1)['albums'][0] ?? null;
+        Response::html(View::page('about', [
+            'page' => 'about', 'title' => Settings::get('about_title'),
+            'aboutCover' => $latest && $latest['cover'] ? Photos::toPublic($latest['cover']) : null,
+            'aboutCaption' => $latest ? $latest['title'] . ' · ' . Util::dateFr($latest['event_date']) : '',
+        ]), 200, ['Cache-Control: public, max-age=600']);
     }
 
     // ─── API publique ────────────────────────────────────────────────────
