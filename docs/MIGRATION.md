@@ -6,13 +6,23 @@ Elementor, originaux à 2560 px maximum, tailles intermédiaires déjà génér�
 
 ## Principe : référencer, ne pas copier
 
-`bin/import-wordpress.php` lit l'API REST publique (`/wp-json/wp/v2/posts`, `/media`) et crée en base :
+`bin/import-wordpress.php` (classe `App\WpImport`) lit les albums WordPress et crée en base :
 - un album par article (`wp_post_id`, slug WordPress conservé → même adresse `/albums/<slug>`, `legacy_url` mémorisée) ;
 - une photo par image de la galerie, `storage = legacy`, chemin relatif à `wp-content/uploads` ;
 - les tailles WordPress comme variantes : `thumb` ← 768 px, `w800` ← 768, `w1600` ← 1536, `w2400` ← 2048.
 
 Aucun fichier n'est copié, déplacé ni modifié. Rien n'est écrit dans WordPress. Le script est **idempotent** : relancé, il
 met à jour les albums modifiés (date `modified`) et saute les autres ; `--force` re-parse tout.
+
+Deux sources possibles :
+- **`WP_DATABASE=caphotog_vmhxm` (utilisé sur EX2)** : lecture directe de la base WordPress en `SELECT` (l'utilisateur MySQL
+  du nouveau site a reçu ce seul privilège sur cette base). Gère le contenu brut : code court `[gallery ids=…]` et galeries
+  Elementor (`_elementor_data`). Import complet des 510 albums en ~8 minutes.
+- **API REST** (`WP_API_URL`, si `WP_DATABASE` est vide) : pratique en local. ⚠ Depuis le serveur EX2 lui-même, l'API répond
+  `429 Rate limit exceeded` (l'IP du serveur est partagée) : inutilisable sur place.
+
+Fait le 18/09/2026 sur `nouveau.caphotographies.fr` : 510 albums, 271 139 photos, 1 084 402 versions ; vérification disque :
+0 fichier manquant (originaux et versions).
 
 ## Procédure (sur EX2, Terminal cPanel ou cron)
 

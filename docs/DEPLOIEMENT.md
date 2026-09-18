@@ -6,6 +6,14 @@ Ce que l'on sait de l'hébergement (vérifié le 17/09/2026) : serveur **LiteSpe
 
 Principe : l'application vit dans `~/ca_photographies/` (hors DocumentRoot). Seul son dossier `public/` est exposé.
 
+État au 18/09/2026 : phase 1 réalisée. Sous-domaine `nouveau.caphotographies.fr` → `~/ca_photographies/public`,
+base `caphotog_ca`, PHP 8.3 + Imagick, 510 albums importés et vérifiés. WordPress intact sur `caphotographies.fr`.
+
+Sans SSH, le déploiement se fait avec `python3 bin/deploy-ftp.py` (FTPS, accès dans `.env.deploy`, jamais commité).
+Le compte FTP `deploy@caphotographies.fr` est enfermé dans `/home/caphotog` : les chemins distants sont relatifs à ce dossier.
+Les opérations ponctuelles (initialisation, import) ont été faites via un script temporaire protégé par clé, supprimé ensuite ;
+l'alternative est le Terminal cPanel.
+
 ```
 /home/<compte>/
 ├── ca_photographies/          ← ce dépôt (git clone), contient .env
