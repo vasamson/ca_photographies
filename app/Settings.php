@@ -12,7 +12,7 @@ final class Settings
         'tagline'      => 'Photographie de cyclisme',
         'about_title'  => 'À propos',
         'about_text'   => "CA Photographies couvre les courses cyclistes de l'Ouest : chaque épreuve, développée en album, à feuilleter en plein écran.",
-        'contact_email'=> '',
+        'contact_email'=> 'c.aphotographies@gmail.com',
         'instagram'    => '',
         'facebook'     => '',
         'home_intro'   => 'Chaque course, développée en album. À feuilleter en plein écran.',

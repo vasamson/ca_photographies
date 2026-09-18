@@ -27,6 +27,8 @@ $router->get('/', fn($r) => isset($_GET['p']) ? Pub::legacyShortlink($r) : Pub::
 $router->get('/albums', [Pub::class, 'albums']);
 $router->get('/albums/{slug}', [Pub::class, 'album']);
 $router->get('/a-propos', [Pub::class, 'about']);
+$router->get('/contact', [Pub::class, 'contact']);
+$router->post('/contact', [Pub::class, 'contactSend']);
 $router->get('/sitemap.xml', [Pub::class, 'sitemap']);
 $router->get('/robots.txt', [Pub::class, 'robots']);
 $router->get('/api/albums', [Pub::class, 'apiAlbums']);

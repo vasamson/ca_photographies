@@ -62,6 +62,41 @@ final class PublicController
         ]), 200, ['Cache-Control: no-cache, must-revalidate']);
     }
 
+    // ─── Contact ─────────────────────────────────────────────────────────
+    public static function contact(Request $req): void
+    {
+        \App\Auth::start();
+        Response::html(View::page('contact', ['page' => 'contact', 'title' => 'Contact', 'token' => \App\Auth::csrf(), 'sent' => null, 'error' => null, 'old' => []]), 200, ['Cache-Control: no-store']);
+    }
+
+    public static function contactSend(Request $req): void
+    {
+        \App\Auth::start();
+        $in = array_map(fn($v) => is_string($v) ? trim($v) : '', $_POST);
+        $render = fn(?string $error, ?string $sent = null) => Response::html(View::page('contact', ['page' => 'contact', 'title' => 'Contact', 'token' => \App\Auth::csrf(), 'sent' => $sent, 'error' => $error, 'old' => $in]), $error ? 422 : 200, ['Cache-Control: no-store']);
+
+        // Anti-spam : jeton de session, champ piège, délai minimal, limite par IP
+        if (!hash_equals(\App\Auth::csrf(), $in['_token'] ?? '')) { $render('Formulaire expiré, réessayez.'); return; }
+        if (($in['website'] ?? '') !== '' || time() - (int) ($in['_t'] ?? 0) < 3) { $render('Envoi refusé. Réessayez dans un instant.'); return; }
+        $ip = $req->ip();
+        \App\Db::exec('DELETE FROM login_attempts WHERE attempted_at < ?', [date('Y-m-d H:i:s', time() - 3600)]);
+        if ((int) \App\Db::value('SELECT COUNT(*) FROM login_attempts WHERE ip = ? AND attempted_at >= ?', ['contact:' . $ip, date('Y-m-d H:i:s', time() - 3600)]) >= 5) { $render('Trop de messages envoyés. Réessayez dans une heure.'); return; }
+
+        $name = mb_substr($in['name'] ?? '', 0, 120); $email = mb_substr($in['email'] ?? '', 0, 190);
+        $subject = mb_substr($in['subject'] ?? '', 0, 150) ?: 'Message depuis caphotographies.fr'; $message = mb_substr($in['message'] ?? '', 0, 5000);
+        if ($name === '' || $message === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) { $render('Merci de renseigner votre nom, un e-mail valide et un message.'); return; }
+        if (preg_match('/[\r\n]/', $name . $email . $subject)) { $render('Caractères non autorisés.'); return; }
+
+        $to = Settings::get('contact_email') ?: 'c.aphotographies@gmail.com';
+        $host = parse_url(Config::appUrl(), PHP_URL_HOST) ?: 'caphotographies.fr';
+        $body = "Nom : $name\nE-mail : $email\nSujet : $subject\n\n$message\n\n—\nEnvoyé depuis https://$host/contact · IP $ip · " . date('d/m/Y H:i');
+        $headers = ['From: ' . Settings::get('site_name') . " <noreply@$host>", "Reply-To: $name <$email>", 'Content-Type: text/plain; charset=UTF-8', 'X-Mailer: caphotographies-contact'];
+        $ok = @mail($to, '=?UTF-8?B?' . base64_encode("[Contact] $subject") . '?=', $body, implode("\r\n", $headers), "-f noreply@$host");
+        if (!$ok) { error_log('Contact : envoi mail() échoué'); { $render('Envoi impossible pour le moment. Écrivez directement à ' . $to . '.'); return; } }
+        \App\Db::insert('login_attempts', ['ip' => 'contact:' . $ip, 'attempted_at' => \App\Db::now()]);
+        $render(null, $name);
+    }
+
     // ─── API publique ────────────────────────────────────────────────────
     public static function apiAlbums(Request $req): void
     {
@@ -87,7 +122,7 @@ final class PublicController
         $base = Config::appUrl();
         $rows = \App\Db::all('SELECT slug, updated_at FROM albums WHERE published = 1 AND deleted_at IS NULL ORDER BY event_date DESC');
         $xml = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-        $xml .= "<url><loc>$base/</loc></url><url><loc>$base/albums</loc></url><url><loc>$base/a-propos</loc></url>";
+        $xml .= "<url><loc>$base/</loc></url><url><loc>$base/albums</loc></url><url><loc>$base/a-propos</loc></url><url><loc>$base/contact</loc></url>";
         foreach ($rows as $r) $xml .= '<url><loc>' . $base . '/albums/' . rawurlencode($r['slug']) . '</loc><lastmod>' . date('Y-m-d', strtotime($r['updated_at'])) . '</lastmod></url>';
         $xml .= '</urlset>';
         header('Content-Type: application/xml; charset=utf-8');

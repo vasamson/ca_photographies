@@ -24,7 +24,7 @@ $brandHtml = $e(implode(' ', $parts)) . ' <em>' . $e($last) . '</em>';
   <?php if (!empty($ogImage)): ?><meta property="og:image" content="<?= $e($ogImage) ?>"><meta name="twitter:card" content="summary_large_image"><?php endif; ?>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;1,6..96,400&family=Unbounded:wght@400;700&family=Manrope:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,600;0,6..96,700;1,6..96,400;1,6..96,600&family=Unbounded:wght@400;700&family=Manrope:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/style.css?v=<?= filemtime(BASE_PATH . '/public/assets/css/style.css') ?>">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23070606'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23ff3b1d' stroke-width='3'/%3E%3C/svg%3E">
 </head>
@@ -40,6 +40,7 @@ $brandHtml = $e(implode(' ', $parts)) . ' <em>' . $e($last) . '</em>';
     <nav>
       <a href="/albums"><span data-t="Albums">Albums</span></a>
       <a href="/a-propos"><span data-t="À propos">À propos</span></a>
+      <a href="/contact"><span data-t="Contact">Contact</span></a>
       <?php if ($settings['instagram']): ?><a href="<?= $e($settings['instagram']) ?>" target="_blank" rel="noopener"><span data-t="Instagram">Instagram</span></a><?php endif; ?>
     </nav>
   </header>
@@ -61,10 +62,10 @@ $brandHtml = $e(implode(' ', $parts)) . ' <em>' . $e($last) . '</em>';
       </div>
       <div class="foot-col">
         <span class="wide">Contact</span>
+        <a href="/contact">Nous écrire</a>
         <?php if ($settings['contact_email']): ?><a href="mailto:<?= $e($settings['contact_email']) ?>"><?= $e($settings['contact_email']) ?></a><?php endif; ?>
         <?php if ($settings['instagram']): ?><a href="<?= $e($settings['instagram']) ?>" target="_blank" rel="noopener">Instagram ↗</a><?php endif; ?>
         <?php if ($settings['facebook']): ?><a href="<?= $e($settings['facebook']) ?>" target="_blank" rel="noopener">Facebook ↗</a><?php endif; ?>
-        <?php if (!$settings['contact_email'] && !$settings['instagram'] && !$settings['facebook']): ?><span class="muted">Via la page <?= $e($settings['about_title']) ?></span><?php endif; ?>
       </div>
       <div class="foot-col">
         <span class="wide">À propos</span>

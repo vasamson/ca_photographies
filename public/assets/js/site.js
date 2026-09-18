@@ -53,7 +53,7 @@
     if (page === "home") renderHome();
     if (page === "albums") renderIndex();
     if (page === "album") renderAlbum();
-    if (page === "about" || page === "error") revealFoot();
+    if (page === "about" || page === "error" || page === "contact") revealFoot();
   } catch (e) { console.error(e); }
 
   function revealFoot() {
