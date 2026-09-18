@@ -94,7 +94,8 @@ final class Storage
 
     public static function freeSpace(): ?int
     {
-        $f = @disk_free_space(Config::photosRoot());
+        $root = Config::photosRoot();
+        $f = @disk_free_space(is_dir($root) ? $root : dirname($root));
         return $f === false ? null : (int) $f;
     }
 }

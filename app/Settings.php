@@ -23,8 +23,8 @@ final class Settings
     public static function all(): array
     {
         if (self::$cache !== null) return self::$cache;
-        $rows = Db::all('SELECT `key`, `value` FROM settings');
-        $db = array_column($rows, 'value', 'key');
+        try { $db = array_column(Db::all('SELECT `key`, `value` FROM settings'), 'value', 'key'); }
+        catch (\Throwable) { $db = []; } // base non initialisée : la page d'erreur doit quand même s'afficher
         return self::$cache = array_merge(self::DEFAULTS, $db);
     }
 
