@@ -38,7 +38,7 @@ $brandHtml = $e(implode(' ', $parts)) . ' <em>' . $e($last) . '</em>';
   <header class="topbar">
     <a class="brand" href="/"><?= $brandHtml ?></a>
     <nav>
-      <a href="/"><span data-t="Albums">Albums</span></a>
+      <a href="/albums"><span data-t="Albums">Albums</span></a>
       <a href="/a-propos"><span data-t="À propos">À propos</span></a>
       <?php if ($settings['instagram']): ?><a href="<?= $e($settings['instagram']) ?>" target="_blank" rel="noopener"><span data-t="Instagram">Instagram</span></a><?php endif; ?>
     </nav>
@@ -55,7 +55,7 @@ $brandHtml = $e(implode(' ', $parts)) . ' <em>' . $e($last) . '</em>';
     <div class="foot-grid">
       <div class="foot-col">
         <span class="wide">Navigation</span>
-        <a href="/">Albums</a>
+        <a href="/albums">Tous les albums</a>
         <a href="/a-propos"><?= $e($settings['about_title']) ?></a>
         <a href="/admin" rel="nofollow">Espace photographes</a>
       </div>

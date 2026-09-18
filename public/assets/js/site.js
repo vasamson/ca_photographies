@@ -51,6 +51,7 @@
 
   try {
     if (page === "home") renderHome();
+    if (page === "albums") renderIndex();
     if (page === "album") renderAlbum();
     if (page === "about" || page === "error") revealFoot();
   } catch (e) { console.error(e); }
@@ -60,9 +61,52 @@
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // ACCUEIL
+  // ACCUEIL : hero, ticker, 10 derniers albums, bande horizontale
   // ═══════════════════════════════════════════════════════════════════
   function renderHome() {
+    const data = initial("initial-data") || { albums: [] };
+    const rows = document.getElementById("rows"), fl = document.getElementById("float-img");
+    registerFloat(fl, data.albums);
+    const bg = document.getElementById("hero-bg"), imgs = [...bg.querySelectorAll("img")];
+    if (!animate) { document.querySelectorAll(".hero h1 .l span, .row .w span").forEach((s) => (s.style.transform = "none")); if (imgs[0]) imgs[0].style.opacity = 1; return; }
+
+    // Entrée immédiate, sans préchargeur
+    gsap.timeline()
+      .to(".hero h1 .l span", { y: 0, duration: 1.2, ease: "expo.out", stagger: .12 }, .1)
+      .from(".hero-kicker, .hero-foot > *", { y: 20, opacity: 0, duration: .8, stagger: .08, ease: "power3.out" }, "-=.8")
+      .from(".topbar", { y: -20, opacity: 0, duration: .8 }, "-=.8");
+    if (imgs.length) {
+      let i = 0;
+      const show = (img) => gsap.fromTo(img, { opacity: 0, scale: 1.12 }, { opacity: 1, scale: 1, duration: 5, ease: "power1.out" });
+      show(imgs[0]);
+      if (imgs.length > 1) setInterval(() => { gsap.to(imgs[i], { opacity: 0, duration: 1.6 }); i = (i + 1) % imgs.length; show(imgs[i]); }, 5200);
+    }
+    gsap.to(".hero-content", { yPercent: 25, opacity: .2, ease: "none", scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: true } });
+    gsap.to(bg, { yPercent: 18, ease: "none", scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: true } });
+    gsap.from(".latest .section-head", { opacity: 0, y: 30, duration: 1, ease: "power3.out", scrollTrigger: { trigger: ".latest", start: "top 85%", once: true } });
+    revealRows([...rows.children]);
+    floatingImage(rows, fl);
+
+    ScrollTrigger.matchMedia({
+      "(min-width: 721px)": () => {
+        const stripEl = document.getElementById("strip"); if (!stripEl) return;
+        const trackEl = document.getElementById("strip-track");
+        const dist = () => trackEl.scrollWidth - innerWidth;
+        gsap.to(trackEl, { x: () => -dist(), ease: "none", scrollTrigger: { trigger: stripEl, start: "top top", end: () => "+=" + dist(), pin: true, scrub: 1, invalidateOnRefresh: true, anticipatePin: 1 } });
+        gsap.utils.toArray(".card img").forEach((img) => gsap.fromTo(img, { xPercent: -8 }, { xPercent: 0, ease: "none", scrollTrigger: { trigger: stripEl, start: "top top", end: () => "+=" + dist(), scrub: 1 } }));
+      },
+      "(max-width: 720px)": () => {
+        gsap.utils.toArray(".card").forEach((c) => gsap.from(c, { opacity: 0, y: 40, duration: 1, ease: "power3.out", scrollTrigger: { trigger: c, start: "top 90%", once: true } }));
+      }
+    });
+    revealFoot();
+    document.querySelectorAll(".card img, .row .thumb").forEach((im) => im.addEventListener("load", () => ScrollTrigger.refresh(), { once: true }));
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // TOUS LES ALBUMS : index complet, recherche, filtres, défilement infini
+  // ═══════════════════════════════════════════════════════════════════
+  function renderIndex() {
     const data = initial("initial-data") || { albums: [], total: 0, pages: 1 };
     const rows = document.getElementById("rows"), more = document.getElementById("more"), status = document.getElementById("index-status");
     const searchIn = document.getElementById("search"), yearSel = document.getElementById("year"), catSel = document.getElementById("category");
@@ -76,17 +120,13 @@
         ${a.cover ? `<img class="thumb" src="${esc(a.cover.thumb)}" alt="" loading="lazy">` : ""}
         <span class="m"><span class="d">${esc(fmtDate(a.date))}${a.location ? " · " + esc(a.location) : ""}</span><span class="c">${a.count} photos</span></span>
       </a>`;
-
-    function registerFloat(albums) {
-      albums.forEach((a) => { if (a.cover && !fl.querySelector(`[data-id="${a.id}"]`)) fl.insertAdjacentHTML("beforeend", `<img src="${esc(a.cover.thumb)}" alt="" data-id="${a.id}" loading="lazy">`); });
-    }
     function appendRows(albums) {
       const frag = document.createElement("div");
       frag.innerHTML = albums.map((a, i) => rowHtml(a, state.offset + i)).join("");
       const els = [...frag.children];
       els.forEach((el) => rows.appendChild(el));
       state.offset += albums.length;
-      registerFloat(albums);
+      registerFloat(fl, albums);
       if (animate) revealRows(els); else els.forEach((el) => el.querySelectorAll(".w span").forEach((s) => (s.style.transform = "none")));
     }
     function updateStatus(res) {
@@ -96,7 +136,7 @@
     }
     const params = () => `?page=${state.page}&q=${encodeURIComponent(state.q)}&year=${encodeURIComponent(state.year)}&category=${encodeURIComponent(state.category)}`;
 
-    registerFloat(data.albums);
+    registerFloat(fl, data.albums);
     let loadingMore = false;
     const loadMoreAlbums = async () => {
       if (loadingMore || state.page >= state.pages) return;
@@ -121,75 +161,38 @@
     yearSel?.addEventListener("change", refilter);
     catSel?.addEventListener("change", refilter);
 
-    // ─── Animations ───────────────────────────────────────────────────
-    const bg = document.getElementById("hero-bg"), imgs = [...bg.querySelectorAll("img")];
-    const loader = document.getElementById("loader");
-    if (!animate) { loader?.remove(); document.querySelectorAll(".hero h1 .l span, .row .w span").forEach((s) => (s.style.transform = "none")); if (imgs[0]) imgs[0].style.opacity = 1; return; }
-
-    preload(imgs.slice(0, 1).map((i) => i.src)).then(() => {
-      const num = document.getElementById("loader-num"), obj = { v: 0 };
-      gsap.timeline()
-        .to(obj, { v: 100, duration: 1.1, ease: "power2.inOut", onUpdate: () => (num.textContent = pad(Math.round(obj.v))) })
-        .to("#loader-bar", { width: "100%", duration: 1.1, ease: "power2.inOut" }, 0)
-        .to(loader, { yPercent: -100, duration: .9, ease: "expo.inOut" }, "+=.1")
-        .to(".hero h1 .l span", { y: 0, duration: 1.2, ease: "expo.out", stagger: .12 }, "-=.5")
-        .from(".hero-kicker, .hero-foot > *", { y: 20, opacity: 0, duration: .8, stagger: .08, ease: "power3.out" }, "-=.8")
-        .from(".topbar", { y: -20, opacity: 0, duration: .8 }, "-=.8")
-        .set(loader, { display: "none" });
-      if (imgs.length) {
-        let i = 0;
-        const show = (img) => gsap.fromTo(img, { opacity: 0, scale: 1.12 }, { opacity: 1, scale: 1, duration: 6, ease: "power1.out" });
-        show(imgs[0]);
-        if (imgs.length > 1) setInterval(() => { gsap.to(imgs[i], { opacity: 0, duration: 1.6 }); i = (i + 1) % imgs.length; show(imgs[i]); }, 5200);
-      }
-    });
-
-    gsap.to(".hero-content", { yPercent: 25, opacity: .2, ease: "none", scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: true } });
-    gsap.to(bg, { yPercent: 18, ease: "none", scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: true } });
-    gsap.from(".section-head", { opacity: 0, y: 30, duration: 1, ease: "power3.out", stagger: .1, scrollTrigger: { trigger: ".index", start: "top 85%", once: true } });
-
-    function revealRows(els) {
-      els.forEach((row) => {
-        gsap.to(row.querySelectorAll(".w span"), { y: 0, duration: 1, ease: "expo.out", stagger: .06, scrollTrigger: { trigger: row, start: "top 92%", once: true } });
-        gsap.from(row.querySelectorAll(".n, .m"), { opacity: 0, x: -10, duration: .8, delay: .2, scrollTrigger: { trigger: row, start: "top 92%", once: true } });
-      });
-    }
+    if (!animate) { document.querySelectorAll(".row .w span").forEach((s) => (s.style.transform = "none")); return; }
+    gsap.from(".index .section-head, .index-tools", { opacity: 0, y: 24, duration: .9, ease: "power3.out", stagger: .1 });
     revealRows([...rows.children]);
-
-    if (fine) {
-      let mx = 0, my = 0, active = false, lastX = 0;
-      const qx = gsap.quickTo(fl, "x", { duration: .6, ease: "power3" }), qy = gsap.quickTo(fl, "y", { duration: .6, ease: "power3" });
-      const rot = gsap.quickTo(fl, "rotation", { duration: .8, ease: "power3" });
-      addEventListener("mousemove", (e) => { mx = e.clientX; my = e.clientY; if (active) { qx(mx); qy(my); rot(gsap.utils.clamp(-8, 8, (mx - lastX) * .3)); lastX = mx; } });
-      rows.addEventListener("mouseover", (e) => {
-        const row = e.target.closest(".row"); if (!row) return;
-        fl.querySelectorAll("img").forEach((im) => im.classList.toggle("on", im.dataset.id === row.dataset.id));
-        if (!active) { active = true; gsap.set(fl, { x: mx, y: my }); gsap.to(fl, { opacity: 1, scale: 1, duration: .5, ease: "power3.out" }); }
-      });
-      rows.addEventListener("mouseleave", () => { active = false; gsap.to(fl, { opacity: 0, scale: .9, duration: .4 }); });
-    }
-
-    ScrollTrigger.matchMedia({
-      "(min-width: 721px)": () => {
-        const stripEl = document.getElementById("strip"); if (!stripEl) return;
-        const trackEl = document.getElementById("strip-track");
-        const dist = () => trackEl.scrollWidth - innerWidth;
-        gsap.to(trackEl, { x: () => -dist(), ease: "none", scrollTrigger: { trigger: stripEl, start: "top top", end: () => "+=" + dist(), pin: true, scrub: 1, invalidateOnRefresh: true, anticipatePin: 1 } });
-        gsap.utils.toArray(".card img").forEach((img) => gsap.fromTo(img, { xPercent: -8 }, { xPercent: 0, ease: "none", scrollTrigger: { trigger: stripEl, start: "top top", end: () => "+=" + dist(), scrub: 1 } }));
-      },
-      "(max-width: 720px)": () => {
-        gsap.utils.toArray(".card").forEach((c) => gsap.from(c, { opacity: 0, y: 40, duration: 1, ease: "power3.out", scrollTrigger: { trigger: c, start: "top 90%", once: true } }));
-      }
-    });
+    floatingImage(rows, fl);
     revealFoot();
-    document.querySelectorAll(".card img, .row .thumb").forEach((im) => im.addEventListener("load", () => ScrollTrigger.refresh(), { once: true }));
+    document.querySelectorAll(".row .thumb").forEach((im) => im.addEventListener("load", () => ScrollTrigger.refresh(), { once: true }));
   }
 
-  function preload(srcs) {
-    return Promise.race([
-      Promise.all(srcs.map((s) => new Promise((r) => { const i = new Image(); i.onload = i.onerror = r; i.src = s; }))),
-      new Promise((r) => setTimeout(r, 2000))
-    ]);
+  // ─── Partagé : lignes d'albums, image flottante au survol ────────────
+  function registerFloat(fl, albums) {
+    if (!fl) return;
+    albums.forEach((a) => { if (a.cover && !fl.querySelector(`[data-id="${a.id}"]`)) fl.insertAdjacentHTML("beforeend", `<img src="${esc(a.cover.thumb)}" alt="" data-id="${a.id}" loading="lazy">`); });
+  }
+  function revealRows(els) {
+    if (!animate) return;
+    els.forEach((row) => {
+      gsap.to(row.querySelectorAll(".w span"), { y: 0, duration: 1, ease: "expo.out", stagger: .06, scrollTrigger: { trigger: row, start: "top 92%", once: true } });
+      gsap.from(row.querySelectorAll(".n, .m"), { opacity: 0, x: -10, duration: .8, delay: .2, scrollTrigger: { trigger: row, start: "top 92%", once: true } });
+    });
+  }
+  function floatingImage(rows, fl) {
+    if (!fine || !fl) return;
+    let mx = 0, my = 0, active = false, lastX = 0;
+    const qx = gsap.quickTo(fl, "x", { duration: .6, ease: "power3" }), qy = gsap.quickTo(fl, "y", { duration: .6, ease: "power3" });
+    const rot = gsap.quickTo(fl, "rotation", { duration: .8, ease: "power3" });
+    addEventListener("mousemove", (e) => { mx = e.clientX; my = e.clientY; if (active) { qx(mx); qy(my); rot(gsap.utils.clamp(-8, 8, (mx - lastX) * .3)); lastX = mx; } });
+    rows.addEventListener("mouseover", (e) => {
+      const row = e.target.closest(".row"); if (!row) return;
+      fl.querySelectorAll("img").forEach((im) => im.classList.toggle("on", im.dataset.id === row.dataset.id));
+      if (!active) { active = true; gsap.set(fl, { x: mx, y: my }); gsap.to(fl, { opacity: 1, scale: 1, duration: .5, ease: "power3.out" }); }
+    });
+    rows.addEventListener("mouseleave", () => { active = false; gsap.to(fl, { opacity: 0, scale: .9, duration: .4 }); });
   }
 
   // ═══════════════════════════════════════════════════════════════════

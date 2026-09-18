@@ -14,10 +14,21 @@ final class PublicController
     // ─── Pages ───────────────────────────────────────────────────────────
     public static function home(Request $req): void
     {
-        $res = Albums::listPublic(1, self::perPage());
+        $res = Albums::listPublic(1, 10);
         $albums = array_map([Albums::class, 'toPublic'], $res['albums']);
         Response::html(View::page('home', [
             'page' => 'home', 'title' => null,
+            'albums' => $albums, 'total' => $res['total'],
+            'initial' => ['albums' => $albums, 'total' => $res['total']],
+        ]), 200, ['Cache-Control: public, max-age=120']);
+    }
+
+    public static function albums(Request $req): void
+    {
+        $res = Albums::listPublic(1, self::perPage());
+        $albums = array_map([Albums::class, 'toPublic'], $res['albums']);
+        Response::html(View::page('albums', [
+            'page' => 'albums', 'title' => 'Tous les albums',
             'albums' => $albums, 'total' => $res['total'], 'pages' => $res['pages'],
             'facets' => Albums::facets(),
             'initial' => ['albums' => $albums, 'total' => $res['total'], 'pages' => $res['pages'], 'page' => 1],
@@ -76,7 +87,7 @@ final class PublicController
         $base = Config::appUrl();
         $rows = \App\Db::all('SELECT slug, updated_at FROM albums WHERE published = 1 AND deleted_at IS NULL ORDER BY event_date DESC');
         $xml = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-        $xml .= "<url><loc>$base/</loc></url><url><loc>$base/a-propos</loc></url>";
+        $xml .= "<url><loc>$base/</loc></url><url><loc>$base/albums</loc></url><url><loc>$base/a-propos</loc></url>";
         foreach ($rows as $r) $xml .= '<url><loc>' . $base . '/albums/' . rawurlencode($r['slug']) . '</loc><lastmod>' . date('Y-m-d', strtotime($r['updated_at'])) . '</lastmod></url>';
         $xml .= '</urlset>';
         header('Content-Type: application/xml; charset=utf-8');

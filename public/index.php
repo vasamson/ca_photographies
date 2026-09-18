@@ -24,6 +24,7 @@ $router = new Router();
 
 // ─── Public ──────────────────────────────────────────────────────────────
 $router->get('/', fn($r) => isset($_GET['p']) ? Pub::legacyShortlink($r) : Pub::home($r));
+$router->get('/albums', [Pub::class, 'albums']);
 $router->get('/albums/{slug}', [Pub::class, 'album']);
 $router->get('/a-propos', [Pub::class, 'about']);
 $router->get('/sitemap.xml', [Pub::class, 'sitemap']);
