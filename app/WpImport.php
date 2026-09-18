@@ -17,6 +17,7 @@ final class WpImport
     private const FIELDS = '_fields=id,slug,link,date,modified,title,excerpt,content,featured_media,categories';
 
     private string $api; private string $legacyUrl; private array $catNames = [];
+    private ?WpDb $db = null;
     public array $stats = ['seen' => 0, 'created' => 0, 'updated' => 0, 'skipped' => 0, 'photos' => 0, 'missing_sizes' => 0, 'errors' => 0];
     /** @var callable */ private $log;
 
@@ -26,7 +27,10 @@ final class WpImport
         $this->legacyUrl = Config::legacyUrl();
         if ($this->legacyUrl === '') throw new \RuntimeException('LEGACY_URL manquant dans .env');
         $this->log = $log ?? fn(string $s) => null;
+        if ((string) Env::get('WP_DATABASE', '') !== '') $this->db = new WpDb();
     }
+
+    public function source(): string { return $this->db ? 'db' : 'api'; }
 
     /**
      * @param array{limit?:int, post?:int, draft?:bool, force?:bool, time?:int} $o
@@ -39,15 +43,19 @@ final class WpImport
         $limit = (int) ($o['limit'] ?? 0); $only = (int) ($o['post'] ?? 0); $budget = (int) ($o['time'] ?? 0); $start = time();
         $publish = !empty($o['draft']) ? 0 : 1; $force = !empty($o['force']);
         Db::migrate();
-        foreach ($this->get("{$this->api}/categories?per_page=100&_fields=id,name")['data'] as $c) $this->catNames[$c['id']] = self::text($c['name']);
+        $cats = $this->db ? $this->db->categories() : $this->get("{$this->api}/categories?per_page=100&_fields=id,name")['data'];
+        foreach ($cats as $c) $this->catNames[$c['id']] = self::text($c['name']);
 
-        $page = 1; $processed = 0;
+        $page = 1; $processed = 0; $per = 20;
         while (true) {
-            $url = $only ? "{$this->api}/posts/$only?" . self::FIELDS : "{$this->api}/posts?" . self::FIELDS . "&per_page=20&page=$page&orderby=date&order=desc";
-            $res = $this->get($url);
-            $posts = $only ? [$res['data']] : $res['data'];
+            if ($this->db) { $posts = $this->db->posts($per, ($page - 1) * $per, $only); $totalPages = PHP_INT_MAX; }
+            else {
+                $url = $only ? "{$this->api}/posts/$only?" . self::FIELDS : "{$this->api}/posts?" . self::FIELDS . "&per_page=$per&page=$page&orderby=date&order=desc";
+                $res = $this->get($url);
+                $posts = $only ? [$res['data']] : $res['data'];
+                $totalPages = (int) ($this->header($res['headers'], 'X-WP-TotalPages') ?? 1);
+            }
             if (!$posts || empty($posts[0]['id'])) return true;
-            $totalPages = (int) ($this->header($res['headers'], 'X-WP-TotalPages') ?? 1);
 
             foreach ($posts as $post) {
                 if ($limit && $processed >= $limit) return false;
@@ -71,7 +79,8 @@ final class WpImport
         if (!empty($post['featured_media'])) $ids[] = (int) $post['featured_media'];
         $media = [];
         foreach (array_chunk(array_unique($ids), 100) as $batch) {
-            foreach ($this->get("{$this->api}/media?include=" . implode(',', $batch) . '&per_page=100&_fields=id,source_url,mime_type,media_details')['data'] as $m) $media[$m['id']] = $m;
+            $rows = $this->db ? $this->db->media($batch) : $this->get("{$this->api}/media?include=" . implode(',', $batch) . '&per_page=100&_fields=id,source_url,mime_type,media_details')['data'];
+            foreach ($rows as $m) $media[$m['id']] = $m;
         }
         $category = null;
         foreach ($post['categories'] ?? [] as $cid) { $n = $this->catNames[$cid] ?? null; if ($n && !in_array(strtolower($n), ['blog', 'non classé', 'uncategorized'], true)) { $category = $n; break; } }
@@ -132,17 +141,34 @@ final class WpImport
     // ─── Helpers ─────────────────────────────────────────────────────────
     private function get(string $url, int $tries = 4): array
     {
+        $lastStatus = 0; $lastErr = '';
         for ($t = 1; $t <= $tries; $t++) {
-            $ctx = stream_context_create(['http' => ['timeout' => 60, 'header' => "User-Agent: ca-import/1.0\r\nAccept: application/json\r\n", 'ignore_errors' => true]]);
-            $body = @file_get_contents($url, false, $ctx);
-            $status = 0;
-            foreach ($http_response_header ?? [] as $h) if (preg_match('#^HTTP/\S+ (\d+)#', $h, $m)) $status = (int) $m[1];
-            if ($body !== false && $status === 200) { $data = json_decode($body, true); if (is_array($data)) return ['data' => $data, 'headers' => $http_response_header]; }
-            if ($status === 400 || $status === 404) return ['data' => [], 'headers' => $http_response_header ?? []];
+            [$status, $body, $headers, $err] = $this->fetch($url);
+            if ($body !== null && $status === 200) { $data = json_decode($body, true); if (is_array($data)) return ['data' => $data, 'headers' => $headers]; }
+            if ($status === 400 || $status === 404) return ['data' => [], 'headers' => $headers];
+            $lastStatus = $status; $lastErr = $err . ' · ' . preg_replace('/\s+/', ' ', strip_tags(substr((string) $body, 0, 300)));
             sleep($t * 2);
         }
-        throw new \RuntimeException("Échec définitif sur $url");
+        throw new \RuntimeException("Échec définitif sur $url (HTTP $lastStatus $lastErr)");
     }
+
+    /** cURL si disponible (fiable sur cPanel), sinon flux HTTP. @return array{int, ?string, string[], string} */
+    private function fetch(string $url): array
+    {
+        $ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36';
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url); $hdrs = [];
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_TIMEOUT => 90, CURLOPT_CONNECTTIMEOUT => 20, CURLOPT_USERAGENT => $ua, CURLOPT_HTTPHEADER => ['Accept: application/json'], CURLOPT_ENCODING => '',
+                CURLOPT_HEADERFUNCTION => function ($c, $h) use (&$hdrs) { $hdrs[] = trim($h); return strlen($h); }]);
+            $body = curl_exec($ch); $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE); $err = curl_error($ch); curl_close($ch);
+            return [$status, $body === false ? null : $body, $hdrs, $err];
+        }
+        $ctx = stream_context_create(['http' => ['timeout' => 90, 'header' => "User-Agent: $ua\r\nAccept: application/json\r\n", 'ignore_errors' => true]]);
+        $body = @file_get_contents($url, false, $ctx); $status = 0;
+        foreach ($http_response_header ?? [] as $h) if (preg_match('#^HTTP/\S+ (\d+)#', $h, $m)) $status = (int) $m[1];
+        return [$status, $body === false ? null : $body, $http_response_header ?? [], $body === false ? (error_get_last()['message'] ?? '') : ''];
+    }
+
     private function header(array $headers, string $name): ?string
     {
         foreach ($headers as $h) if (stripos($h, "$name:") === 0) return trim(substr($h, strlen($name) + 1));

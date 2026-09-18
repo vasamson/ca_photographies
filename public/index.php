@@ -75,7 +75,7 @@ try {
     if ($req->wantsJson()) Response::json(['error' => $e->getMessage()] + $e->extra, $e->status);
     Response::html(View::page('error', ['page' => 'error', 'title' => 'Erreur ' . $e->status, 'status' => $e->status, 'message' => $e->getMessage(), 'noindex' => true]), $e->status);
 } catch (\Throwable $e) {
-    error_log($e);
+    error_log((string) $e);
     $msg = Config::isLocal() ? $e->getMessage() . "\n" . $e->getTraceAsString() : 'Une erreur interne est survenue.';
     if ($req->wantsJson()) Response::json(['error' => $msg], 500);
     Response::html(View::page('error', ['page' => 'error', 'title' => 'Erreur', 'status' => 500, 'message' => $msg, 'noindex' => true]), 500);
