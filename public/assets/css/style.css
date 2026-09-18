@@ -471,3 +471,7 @@ body:has(.lightbox.open) .topbar { opacity: 0; pointer-events: none; }
 }
 .about { padding-top: 130px; }
 .foot { padding-bottom: 90px; }
+/* Lightbox : hauteur de piste définie pour que max-height:100% s'applique (photos portrait) */
+.lightbox .stage { grid-template-rows: 100%; grid-template-columns: 100%; }
+.lightbox .stage img { max-height: 100%; max-width: min(92vw, 1600px); width: auto; height: auto; }
+.lightbox { background: #0c0a09; }
